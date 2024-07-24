@@ -1,0 +1,8 @@
+{
+  "*.{md,json}": ["prettier --config ./.prettierrc.js --write", "git add"],
+  "*.{js,jsx,ts,tsx,vue}": [
+    "prettier --config ./.prettierrc.js --write",
+    "eslint --config ./.eslintrc.js --fix --quiet",
+    "git add"
+  ]
+}

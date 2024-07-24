@@ -1,0 +1,46 @@
+{
+  "name": "@jshow/cli",
+  "version": "1.0.0",
+  "description": "A simple CLI tool for j-show",
+  "license": "MIT",
+  "keywords": [
+    "cli",
+    "jshow",
+    "jshow-cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/j-show/cli.git"
+  },
+  "homepage": "https://github.com/j-show/cli",
+  "bugs": {
+    "url": "https://github.com/j-show/cli/issues"
+  },
+  "scripts": {
+    "prepare": "husky install",
+    "precommit": "lint-staged",
+    "clean": "rm -rf ./dist && rm -rf ./out",
+    "build": "ts-node -P ./scripts/tsconfig.json -T ./scripts/build"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "chalk": "^4.1.0",
+    "execa": "^4.0.2",
+    "fs-extra": "^11.2.0",
+    "husky": "latest",
+    "lint-staged": "latest",
+    "prettier": ">=3",
+    "ts-node": "^10.9.2",
+    "tslib": "^2.6.2",
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "eslint": "^8",
+    "typescript-eslint": "latest",
+    "eslint-config-jshow": "latest",
+    "eslint-plugin-jshow": "latest",
+    "eslint-config-prettier": "latest",
+    "eslint-plugin-prettier": "latest",
+    "eslint-plugin-simple-import-sort": "latest"
+  }
+}
