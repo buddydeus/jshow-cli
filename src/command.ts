@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/member-ordering */
-import { Command as CommanderProgram } from 'commander';
+import { Command } from 'commander';
 
 /**
  * 命令参数类型。
@@ -35,25 +34,29 @@ export interface CommandArgs {
 }
 
 export abstract class BaseCommand {
-  constructor(public readonly args: CommandArgs) {}
+  static name: string = '';
 
-  protected command!: CommanderProgram;
+  static force: boolean = false;
 
-  public get name(): string {
-    return this.args.name;
+  constructor(protected readonly command: Command) {
+    this.init(command);
   }
 
-  public init(program: CommanderProgram): void {
-    const command = program.createCommand(this.name);
-    this.command = command;
+  public get name(): string {
+    return Object.getPrototypeOf(this)?.constructor?.name ?? '';
+  }
 
-    const { description, options } = this.args;
+  protected init(program: Command): void {
+    const { description } = this.args;
 
     if (description) command.description(description);
 
-    for ( of options) {
-    }
+    // for ( of options) {
+    // }
   }
 
   public abstract execute(): void;
 }
+
+export const isCommand = (value?: unknown): value is BaseCommand =>
+  value != null && value instanceof BaseCommand;

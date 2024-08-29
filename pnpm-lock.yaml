@@ -38,6 +38,9 @@ importers:
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
+      typescript:
+        specifier: ^5.3.3
+        version: 5.5.4
       typescript-eslint:
         specifier: latest
         version: 7.17.0(eslint@8.57.0)(typescript@5.5.4)
@@ -63,9 +66,6 @@ importers:
       tslib:
         specifier: ^2.6.2
         version: 2.6.3
-      typescript:
-        specifier: ^5.3.3
-        version: 5.5.4
 
 packages:
 

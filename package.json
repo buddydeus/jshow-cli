@@ -17,20 +17,25 @@
     "url": "https://github.com/j-show/cli/issues"
   },
   "bin": {
-    "jshow": "./dist/cli.js"
+    "jshow": "./dist/cli.ts"
   },
   "types": "./dist/index.d.ts",
+  "files": [
+    "src"
+  ],
   "scripts": {
     "prepare": "husky install",
     "precommit": "lint-staged",
     "clean": "rm -rf ./dist && rm -rf ./out",
+    "start": "ts-node ./src/cli.ts",
     "build": "ts-node -P ./scripts/tsconfig.json -T ./scripts/build"
   },
   "dependencies": {
     "chalk": "^4.1.0",
     "commander": "^12.1.0",
     "execa": "^4.0.2",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "typescript": "^5.3.3"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.7",
@@ -39,8 +44,7 @@
     "lint-staged": "latest",
     "prettier": ">=3",
     "ts-node": "^10.9.2",
-    "tslib": "^2.6.2",
-    "typescript": "^5.3.3"
+    "tslib": "^2.6.2"
   },
   "peerDependencies": {
     "eslint": "^8",
@@ -50,5 +54,11 @@
     "eslint-plugin-prettier": "latest",
     "eslint-plugin-simple-import-sort": "latest",
     "typescript-eslint": "latest"
+  },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs",
+      "esModuleInterop": true
+    }
   }
 }
