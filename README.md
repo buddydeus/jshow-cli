@@ -69,12 +69,13 @@ The CLI automatically scans and loads command files (`.cmd.ts` or `.cmd.js`) and
      static name = 'example';
      static force = false;
 
-     protected get args() {
+     public get args() {
        return {
          name: 'example',
          description: 'This is an example command',
          aliases: ['ex', 'e'],
          group: 'examples',
+         plugins: ['logger', 'timer'], // Optional: specify plugins to use
          options: [
            {
              flag: '--name <value>',
@@ -89,10 +90,17 @@ The CLI automatically scans and loads command files (`.cmd.ts` or `.cmd.js`) and
            'jshow example --name "jshow"',
            'jshow ex -n "test"',
          ],
+         validate: (options) => {
+           // Optional: custom validation
+           if (options.name && typeof options.name !== 'string') {
+             return 'Name must be a string';
+           }
+           return null;
+         },
        };
      }
 
-     protected beforeExecute(context: CommandContext): void {
+     public beforeExecute(context: CommandContext): void {
        console.log(`Starting command: ${context.name}`);
      }
 
@@ -101,7 +109,7 @@ The CLI automatically scans and loads command files (`.cmd.ts` or `.cmd.js`) and
        console.log(`Hello, ${options.name || 'world'}!`);
      }
 
-     protected afterExecute(context: CommandContext): void {
+     public afterExecute(context: CommandContext): void {
        console.log(`Command completed in ${Date.now() - context.startTime}ms`);
      }
    }
@@ -194,6 +202,33 @@ Install a plugin.
 
 Run the CLI program, parse command line arguments and execute the corresponding command.
 
+### CommandArgs
+
+Command argument configuration interface.
+
+#### Properties
+
+- `name: string` - Command name (required)
+- `description?: string` - Command description
+- `aliases?: string[]` - Command aliases
+- `plugins?: string[]` - List of plugin names to use for this command
+- `group?: string` - Command group for help organization
+- `options: CommandOption[]` - Command options (required)
+- `examples?: string[]` - Usage examples
+- `validate?: (options: Record<string, unknown>) => string | null` - Optional validation function that returns an error message or null
+
+### CommandOption
+
+Command option configuration interface.
+
+#### Properties
+
+- `flag: string` - Option flag (e.g., `'--name <value>'` or `'--verbose'`)
+- `abbreviation?: string` - Option abbreviation (e.g., `'-n'`)
+- `description?: string` - Option description
+- `defaultValue?: T` - Default value for the option
+- `required?: boolean` - Whether the option is required (default: `false`)
+
 ### BaseCommand
 
 Command base class. All custom commands should extend this class.
@@ -202,7 +237,6 @@ Command base class. All custom commands should extend this class.
 
 - `name: string` - Command name (required)
 - `force: boolean` - Whether to force override if command with same name exists (default: `false`)
-- `plugins: string[]` - List of plugin names to use for this command
 
 #### Instance Properties
 
@@ -220,6 +254,16 @@ Command execution logic. Subclasses must implement this method.
 ##### `get args(): CommandArgs`
 
 Get command argument configuration. Subclasses must implement this getter.
+
+The `CommandArgs` interface includes:
+- `name: string` - Command name
+- `description?: string` - Command description
+- `aliases?: string[]` - Command aliases
+- `plugins?: string[]` - List of plugin names to use for this command
+- `group?: string` - Command group for help organization
+- `options: CommandOption[]` - Command options
+- `examples?: string[]` - Usage examples
+- `validate?: (options: Record<string, unknown>) => string | null` - Optional validation function
 
 ##### `beforeExecute?(context: CommandContext): void`
 

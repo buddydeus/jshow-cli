@@ -37,8 +37,9 @@ jshow greet -n "Charlie" -t 3
 
 构建命令示例，演示如何：
 - 使用命令分组
-- **使用插件**（通过 `static plugins = ['logger', 'timer']` 声明）
+- **使用插件**（通过 `args.plugins` 数组声明）
 - 复杂的选项配置
+- 参数验证
 - 错误处理
 
 **运行方式：**
@@ -69,8 +70,8 @@ jshow hello
 
 **特点：**
 - 演示如何在 CommonJS 中使用插件
-- 通过 `static plugins = ['logger', 'timer']` 声明使用的插件
-- 完整的选项配置和错误处理
+- 通过 `args.plugins` 数组声明使用的插件
+- 完整的选项配置、参数验证和错误处理
 
 **运行方式：**
 ```bash
@@ -85,12 +86,18 @@ jshow build -m development -o ./output
 
 ### 如何在命令中使用插件
 
-在命令类中通过 `static plugins` 属性声明要使用的插件：
+在命令类中通过 `args.plugins` 数组声明要使用的插件：
 
 ```typescript
 // TypeScript
 export default class BuildCommand extends BaseCommand {
-  static plugins = ['logger', 'timer']; // 声明使用的插件
+  public get args() {
+    return {
+      name: 'build',
+      plugins: ['logger', 'timer'], // 在 args 中声明使用的插件
+      // ... 其他配置
+    };
+  }
   // ...
 }
 ```
@@ -98,7 +105,13 @@ export default class BuildCommand extends BaseCommand {
 ```javascript
 // CommonJS
 class BuildCommand extends BaseCommand {
-  static plugins = ['logger', 'timer']; // 声明使用的插件
+  get args() {
+    return {
+      name: 'build',
+      plugins: ['logger', 'timer'], // 在 args 中声明使用的插件
+      // ... 其他配置
+    };
+  }
   // ...
 }
 ```
@@ -164,6 +177,7 @@ class BuildCommand extends BaseCommand {
 - 命令类必须继承 `BaseCommand`
 - 插件类必须继承 `BasePlugin`
 - 必须设置 `static name` 属性
+- `args`、`beforeExecute` 和 `afterExecute` 应使用 `public` 访问修饰符
 
 ### CommonJS 文件
 
@@ -179,7 +193,19 @@ class BuildCommand extends BaseCommand {
 
 ### 插件使用
 
-- 在命令类中通过 `static plugins` 数组声明要使用的插件
+- 在命令类的 `args` getter 中通过 `plugins` 数组声明要使用的插件
 - 插件名称必须与插件类的 `static name` 属性匹配
 - 插件会按照优先级顺序执行（优先级数字越小，执行越早）
+
+**示例：**
+
+```typescript
+public get args() {
+  return {
+    name: 'my-command',
+    plugins: ['logger', 'timer'], // 指定要使用的插件
+    // ... 其他配置
+  };
+}
+```
 

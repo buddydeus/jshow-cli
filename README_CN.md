@@ -69,12 +69,13 @@ CLI 会自动扫描并加载项目中的命令文件（`.cmd.ts` 或 `.cmd.js`�
      static name = 'example';
      static force = false;
 
-     protected get args() {
+     public get args() {
        return {
          name: 'example',
          description: '这是一个示例命令',
          aliases: ['ex', 'e'],
          group: 'examples',
+         plugins: ['logger', 'timer'], // 可选：指定要使用的插件
          options: [
            {
              flag: '--name <value>',
@@ -89,10 +90,17 @@ CLI 会自动扫描并加载项目中的命令文件（`.cmd.ts` 或 `.cmd.js`�
            'jshow example --name "jshow"',
            'jshow ex -n "test"',
          ],
+         validate: (options) => {
+           // 可选：自定义验证
+           if (options.name && typeof options.name !== 'string') {
+             return '名称必须是字符串';
+           }
+           return null;
+         },
        };
      }
 
-     protected beforeExecute(context: CommandContext): void {
+     public beforeExecute(context: CommandContext): void {
        console.log(`开始执行命令: ${context.name}`);
      }
 
@@ -101,7 +109,7 @@ CLI 会自动扫描并加载项目中的命令文件（`.cmd.ts` 或 `.cmd.js`�
        console.log(`Hello, ${options.name || 'world'}!`);
      }
 
-     protected afterExecute(context: CommandContext): void {
+     public afterExecute(context: CommandContext): void {
        console.log(`命令执行完成，耗时: ${Date.now() - context.startTime}ms`);
      }
    }
@@ -194,6 +202,33 @@ CLI 会自动扫描并加载项目中的命令文件（`.cmd.ts` 或 `.cmd.js`�
 
 运行 CLI 程序，解析命令行参数并执行相应的命令。
 
+### CommandArgs
+
+命令参数配置接口。
+
+#### 属性
+
+- `name: string` - 命令名称（必需）
+- `description?: string` - 命令描述
+- `aliases?: string[]` - 命令别名
+- `plugins?: string[]` - 该命令使用的插件名称列表
+- `group?: string` - 命令分组，用于帮助信息组织
+- `options: CommandOption[]` - 命令选项（必需）
+- `examples?: string[]` - 使用示例
+- `validate?: (options: Record<string, unknown>) => string | null` - 可选的验证函数，返回错误信息或 null
+
+### CommandOption
+
+命令选项配置接口。
+
+#### 属性
+
+- `flag: string` - 选项标志（例如：`'--name <value>'` 或 `'--verbose'`）
+- `abbreviation?: string` - 选项缩写（例如：`'-n'`）
+- `description?: string` - 选项描述
+- `defaultValue?: T` - 选项的默认值
+- `required?: boolean` - 选项是否必填（默认：`false`）
+
 ### BaseCommand
 
 命令基类，所有自定义命令都应继承此类。
@@ -202,7 +237,6 @@ CLI 会自动扫描并加载项目中的命令文件（`.cmd.ts` 或 `.cmd.js`�
 
 - `name: string` - 命令名称（必需）
 - `force: boolean` - 是否强制覆盖同名命令（默认：`false`）
-- `plugins: string[]` - 该命令使用的插件名称列表
 
 #### 实例属性
 
@@ -220,6 +254,16 @@ CLI 会自动扫描并加载项目中的命令文件（`.cmd.ts` 或 `.cmd.js`�
 ##### `get args(): CommandArgs`
 
 获取命令参数配置，子类必须实现此 getter。
+
+`CommandArgs` 接口包括：
+- `name: string` - 命令名称
+- `description?: string` - 命令描述
+- `aliases?: string[]` - 命令别名
+- `plugins?: string[]` - 该命令使用的插件名称列表
+- `group?: string` - 命令分组，用于帮助信息组织
+- `options: CommandOption[]` - 命令选项
+- `examples?: string[]` - 使用示例
+- `validate?: (options: Record<string, unknown>) => string | null` - 可选的验证函数
 
 ##### `beforeExecute?(context: CommandContext): void`
 
