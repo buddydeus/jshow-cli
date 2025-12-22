@@ -359,7 +359,7 @@ export class CommandProgram {
 
     // 解析命令行参数并执行命令，添加错误处理
     try {
-      program.parse(process.argv);
+      program.parseAsync(process.argv);
     } catch (error) {
       console.error(
         '❌ 执行失败:',

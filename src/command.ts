@@ -12,16 +12,22 @@ import { type Command } from 'commander';
 export interface CommandOption<T = unknown> {
   /**
    * 选项全称
-   * @description 格式如 '--name <value>' 或 '--flag'
-   * @example '--name <value>', '--verbose'
+   * @description 格式如 'name' 或 'flag'
+   * @example 'name', 'verbose'
    */
   flag: string;
   /**
    * 选项缩写
-   * @description 单字符缩写，如 '-n'
-   * @example '-n', '-v'
+   * @description 单字符缩写，如 'n'
+   * @example 'n', 'v'
    */
-  abbreviation?: string;
+  abbr?: string;
+  /**
+   * 选项是否有值
+   * @description 如果为 true，选项没有值，否则选项有值
+   * @default false
+   */
+  flagValue?: boolean;
   /**
    * 选项说明
    * @description 在帮助信息中显示的选项描述
@@ -83,7 +89,7 @@ export interface CommandArgs {
    * 命令选项数组
    * @description 该命令支持的所有选项
    */
-  options: CommandOption[];
+  options?: CommandOption[];
   /**
    * 命令参数验证函数
    * @description 在执行前验证命令参数，返回错误信息或 null
@@ -169,8 +175,9 @@ export type CommandImportType = { default: CommandClassType };
  *       group: 'build',
  *       options: [
  *         {
- *           flag: '--name <value>',
- *           abbreviation: '-n',
+ *           flag: 'name',
+ *           abbr: 'n',
+ *           flagValue: true,
  *           description: '名称参数',
  *           required: true,
  *         },
@@ -264,7 +271,12 @@ export abstract class BaseCommand {
    * @protected
    */
   protected init(program: Command): void {
-    const { description, aliases, options, examples } = this.args;
+    const {
+      description,
+      aliases = [],
+      options = [],
+      examples = []
+    } = this.args;
 
     // 设置命令描述
     if (description) {
@@ -272,15 +284,19 @@ export abstract class BaseCommand {
     }
 
     // 设置命令别名
-    if (aliases && aliases.length > 0) {
+    if (aliases.length > 0) {
       program.aliases(aliases);
     }
 
     // 自动注册选项
     for (const option of options) {
-      const flag = option.abbreviation
-        ? `${option.abbreviation}, ${option.flag}`
-        : option.flag;
+      const desc = option.description || '';
+
+      const type = option.flagValue ? ' <value>' : '';
+
+      const flag = option.abbr
+        ? `-${option.abbr}, --${option.flag}${type}`
+        : `--${option.flag}${type}`;
 
       const defaultValue = option.defaultValue as
         | string
@@ -289,14 +305,14 @@ export abstract class BaseCommand {
         | undefined;
 
       if (option.required) {
-        program.requiredOption(flag, option.description || '', defaultValue);
+        program.requiredOption(flag, desc, defaultValue);
       } else {
-        program.option(flag, option.description || '', defaultValue);
+        program.option(flag, desc, defaultValue);
       }
     }
 
     // 添加使用示例
-    if (examples && examples.length > 0) {
+    if (examples.length > 0) {
       program.addHelpText(
         'after',
         '\n示例:\n' + examples.map(ex => `  ${ex}`).join('\n')
@@ -309,8 +325,8 @@ export abstract class BaseCommand {
    * @description 包装 execute() 方法，添加生命周期钩子和错误处理
    * @protected
    */
-  protected setupAction(): void {
-    this.command.action((...args: unknown[]) => {
+  protected async setupAction(): Promise<void> {
+    this.command.action(async (...args: unknown[]) => {
       const options = this.command.opts();
       const commandArgs = args.slice(0, -1) as string[];
       const context: CommandContext = {
@@ -324,8 +340,12 @@ export abstract class BaseCommand {
         const plugins = this.getPlugins();
 
         // 执行前钩子
-        plugins.forEach(plugin => plugin.beforeExecute?.(context));
-        this.beforeExecute?.(context);
+        await Promise.all(
+          plugins
+            .map(plugin => plugin.beforeExecute?.(context))
+            .filter(v => v != null)
+        );
+        await this.beforeExecute?.(context);
 
         // 参数验证
         const validationError = this.validateOptions(options);
@@ -334,11 +354,15 @@ export abstract class BaseCommand {
         }
 
         // 执行命令
-        this.execute();
+        await this.execute(context);
 
         // 执行后钩子
-        this.afterExecute?.(context);
-        plugins.forEach(plugin => plugin.afterExecute?.(context));
+        await this.afterExecute?.(context);
+        await Promise.all(
+          plugins
+            .map(plugin => plugin.afterExecute?.(context))
+            .filter(v => v != null)
+        );
       } catch (error) {
         // 错误处理钩子
         const handled = this.onError(error as Error, context);
@@ -357,16 +381,16 @@ export abstract class BaseCommand {
    * @protected
    */
   protected validateOptions(options: Record<string, unknown>): string | null {
-    const { validate, options: optionDefs } = this.args;
+    const { validate, options: optionDefs = [] } = this.args;
 
     // 检查必填选项
     for (const option of optionDefs) {
-      if (option.required) {
-        const optionName = this.extractOptionName(option.flag);
-        if (options[optionName] == null) {
-          return `选项 ${option.flag} 是必填的`;
-        }
-      }
+      if (!option.required) continue;
+
+      const flag = option.flag;
+      if (options[flag] != null) continue;
+
+      return `选项 ${flag} 是必填的`;
     }
 
     // 执行自定义验证
@@ -375,17 +399,6 @@ export abstract class BaseCommand {
     }
 
     return null;
-  }
-
-  /**
-   * 从选项标志中提取选项名称
-   * @param flag - 选项标志，如 '--name <value>' 或 '--verbose'
-   * @returns 选项名称，如 'name' 或 'verbose'
-   * @protected
-   */
-  protected extractOptionName(flag: string): string {
-    // 移除 '--' 前缀和 '<value>' 等后缀
-    return flag.replace(/^--?/, '').split(/\s+/)[0].trim();
   }
 
   /**
@@ -408,14 +421,15 @@ export abstract class BaseCommand {
    * @param context - 命令执行上下文
    * @protected
    */
-  public beforeExecute?(context: CommandContext): void;
+  public beforeExecute?(context: CommandContext): Promise<void>;
 
   /**
    * 执行命令
    * @description 子类必须实现此方法，包含命令的实际执行逻辑
+   * @param context - 命令执行上下文
    * @abstract
    */
-  public abstract execute(): void;
+  public abstract execute(context: CommandContext): Promise<void>;
 
   /**
    * 执行后钩子
@@ -423,7 +437,7 @@ export abstract class BaseCommand {
    * @param context - 命令执行上下文
    * @protected
    */
-  public afterExecute?(context: CommandContext): void;
+  public afterExecute?(context: CommandContext): Promise<void>;
 }
 
 /**
